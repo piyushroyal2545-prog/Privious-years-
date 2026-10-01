@@ -168,22 +168,19 @@
   </div>
 
   <script>
-    // 👇👇 YAHAN APNA APPS SCRIPT KA NAYA LINK (URL) PASTE KAREIN 👇👇
+    // 👇👇 यहाँ अपना APPS SCRIPT का लिंक डालें 👇👇
     const API_URL = "https://script.google.com/macros/s/AKfycbzspLf1-S2T-xxom0uZ7Y_mdLPHAcEitO5gkyKrx5XtB2_XzrbvR8Qh5PnfJVMzNbaQ/exec"; 
     
     let allPapers = [];
 
     function selectClass(className, element) {
-      // Highlight selection
       document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
       element.classList.add('active');
       
-      // Hide Viewer, Show Loading
       document.getElementById('paperViewer').style.display = 'none';
       document.getElementById('yearSelection').style.display = 'none';
       document.getElementById('loading').style.display = 'block';
 
-      // Fetch data
       fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_student_data', className: className }) })
       .then(res => res.json())
       .then(data => {
@@ -207,37 +204,32 @@
       const paper = allPapers[index];
       document.getElementById('paperHeader').innerText = `${paper.className} - Board Exam ${paper.year}`;
       
-      // ==========================================
-      // TEXT CLEANUP & MAGIC FORMATTING (Regex)
-      // ==========================================
       let rawText = paper.content;
       
-      // 1. Remove Gemini's raw bold stars if any, and convert to proper HTML bold
+      // 1. एक्स्ट्रा कूड़ा (span_0, html tags) डिलीट करना
+      rawText = rawText.replace(/span\s*_[a-zA-Z0-9_]+/gi, ''); 
+      rawText = rawText.replace(/<[^>]*>/g, '');
+      
+      // 2. बोल्ड टेक्स्ट सही करना
       rawText = rawText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       
-      // 2. Break lines before every Question Number (e.g. "19)", "20)", "1)", "12.")
-      // Looks for a number followed by a closing parenthesis or dot.
-      rawText = rawText.replace(/([0-9]+\)|\b[0-9]+\.)/g, '<br><br><strong>$1</strong>');
+      // 3. हर प्रश्न (1) 2) आदि) से पहले लाइन ब्रेक देना
+      rawText = rawText.replace(/([0-9]+\))/g, '<br><br><strong>$1</strong>');
       
-      // 3. Format Marks [1], [2+2=4] and push them to the right side
+      // 4. नंबरों [1], [2+2=4] को राइट साइड में खिसकाना
       rawText = rawText.replace(/(\[[0-9+=\/ ]+\])/g, '<span class="marks-badge">$1</span>');
       
-      // 4. Format Sections/Khand (e.g. खण्ड - 1, खण्ड - 2)
+      // 5. 'खण्ड - 1' को बड़ी हेडिंग बनाना
       rawText = rawText.replace(/(खण्ड[\s-]*[0-9]+|Section[\s-]*[A-Z0-9]+)/gi, '<br><br><h3 style="color:#0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom:8px; text-transform:uppercase;">$1</h3>');
       
-      // 5. Format 'OR' / 'अथवा' beautifully in center
+      // 6. 'अथवा' को सेंटर में डिज़ाइन करना
       rawText = rawText.replace(/(\nअथवा\n|\nOR\n|\sअथवा\s|\sOR\s)/gi, '<br><br><div style="text-align:center; font-weight:600; font-style:italic; color:#64748b; margin: 20px 0;">--- अथवा ---</div><br>');
 
-      // ==========================================
-      
-      // Parse the cleaned text using Markdown
       const formattedHtml = marked.parse(rawText);
       document.getElementById('paperContent').innerHTML = formattedHtml;
       
-      // Show Viewer
       document.getElementById('paperViewer').style.display = 'block';
       
-      // Smooth scroll to the top of the paper
       setTimeout(() => {
         document.getElementById('paperViewer').scrollIntoView({behavior: "smooth", block: "start"});
       }, 100);
